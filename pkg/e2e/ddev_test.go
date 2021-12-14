@@ -1,0 +1,83 @@
+/*
+   Copyright 2020 Docker Compose CLI authors
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+*/
+
+package e2e
+
+import (
+	"fmt"
+	"os"
+	"runtime"
+	"strings"
+	"testing"
+
+	"gotest.tools/v3/assert"
+	"gotest.tools/v3/icmd"
+)
+
+const ddevVersion = "v1.18.2"
+
+func TestComposeRunDdev(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Running on Windows. Skipping...")
+	}
+	c := NewParallelE2eCLI(t, binDir)
+	dir, err := os.MkdirTemp("", t.Name()+"-")
+	assert.NilError(t, err)
+	defer os.RemoveAll(dir) // nolint:errcheck
+
+	osName := "linux"
+	if runtime.GOOS == "darwin" {
+		osName = "macos"
+	}
+
+	compressedFilename := fmt.Sprintf("ddev_%s-%s.%s.tar.gz", osName, runtime.GOARCH, ddevVersion)
+
+	c.RunCmdInDir(dir, "curl", "-LO",
+		fmt.Sprintf("https://github.com/drud/ddev/releases/download/%s/%s",
+			ddevVersion,
+			compressedFilename))
+
+	c.RunCmdInDir(dir, "tar", "-xzf", compressedFilename)
+	c.RunDockerCmd("pull", "drud/ddev-ssh-agent:v1.18.0")
+	c.RunDockerCmd("pull", "busybox:stable")
+	c.RunDockerCmd("pull", "phpmyadmin:5")
+
+	c.RunDockerCmd("pull", tagged("drud/ddev-router"))
+	c.RunDockerCmd("pull", tagged("drud/ddev-dbserver-mariadb-10.3"))
+	c.RunDockerCmd("pull", tagged("drud/ddev-webserver"))
+
+	c.RunCmdInDir(dir, "./ddev", "config", "--auto")
+	c.RunCmdInDir(dir, "./ddev", "poweroff")
+
+	success := false
+	for retry := 0; retry < 5; retry++ {
+		cmd := c.NewCmd("./ddev", "start")
+		cmd.Dir = dir
+		cmd.Stdin = strings.NewReader("Y")
+		res := icmd.RunCmd(cmd)
+		if res.ExitCode == 0 {
+			success = true
+			break
+		}
+	}
+	assert.Assert(c.test, success, "Could not start project")
+
+	c.RunCmdInDir(dir, "./ddev", "poweroff")
+}
+
+func tagged(img string) string {
+	return fmt.Sprintf("%s:%s", img, ddevVersion)
+}
