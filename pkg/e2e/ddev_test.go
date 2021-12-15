@@ -19,6 +19,7 @@ package e2e
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -36,7 +37,14 @@ func TestComposeRunDdev(t *testing.T) {
 	c := NewParallelE2eCLI(t, binDir)
 	dir, err := os.MkdirTemp("", t.Name()+"-")
 	assert.NilError(t, err)
-	defer os.RemoveAll(dir) // nolint:errcheck
+
+	siteName := filepath.Base(dir)
+
+	t.Cleanup(func() {
+		_ = c.RunCmdInDir(dir, "./ddev", "delete", "-Oy")
+		_ = c.RunCmdInDir(dir, "./ddev", "poweroff")
+		_ = os.RemoveAll(dir)
+	})
 
 	osName := "linux"
 	if runtime.GOOS == "darwin" {
@@ -44,7 +52,6 @@ func TestComposeRunDdev(t *testing.T) {
 	}
 
 	compressedFilename := fmt.Sprintf("ddev_%s-%s.%s.tar.gz", osName, runtime.GOARCH, ddevVersion)
-
 	c.RunCmdInDir(dir, "curl", "-LO",
 		fmt.Sprintf("https://github.com/drud/ddev/releases/download/%s/%s",
 			ddevVersion,
@@ -59,23 +66,20 @@ func TestComposeRunDdev(t *testing.T) {
 	c.RunDockerCmd("pull", tagged("drud/ddev-dbserver-mariadb-10.3"))
 	c.RunDockerCmd("pull", tagged("drud/ddev-webserver"))
 
+	// Create a simple index.php we can test against.
+	c.RunCmdInDir(dir, "sh", "-c", "echo '<?php\nprint \"ddev is working\";' >index.php")
+
 	c.RunCmdInDir(dir, "./ddev", "config", "--auto")
-	c.RunCmdInDir(dir, "./ddev", "poweroff")
-
-	success := false
-	for retry := 0; retry < 5; retry++ {
-		cmd := c.NewCmd("./ddev", "start")
-		cmd.Dir = dir
-		cmd.Stdin = strings.NewReader("Y")
-		res := icmd.RunCmd(cmd)
-		if res.ExitCode == 0 {
-			success = true
-			break
-		}
-	}
-	assert.Assert(c.test, success, "Could not start project")
+	c.RunCmdInDir(dir, "./ddev", "config", "global", "--use-docker-compose-from-path")
 
 	c.RunCmdInDir(dir, "./ddev", "poweroff")
+
+	cmd := c.NewCmd("./ddev", "start", "-y")
+	cmd.Dir = dir
+	startRes := icmd.RunCmd(cmd)
+	curlRes := c.RunCmdInDir(dir, "curl", "-sSL", fmt.Sprintf("http://%s.ddev.site", siteName))
+	out := curlRes.Stdout()
+	assert.Assert(c.test, startRes.ExitCode == 0 && strings.Contains(out, "ddev is working"), "Could not start project")
 }
 
 func tagged(img string) string {
