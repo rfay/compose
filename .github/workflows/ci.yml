@@ -4,7 +4,14 @@ on:
   push:
     branches:
       - v2
+      - 20220107-ulysses-e2e-ddev
   pull_request:
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Run the build with tmate set "debug_enabled"'
+        required: false
+        default: false
 
 jobs:
   lint:
@@ -119,6 +126,13 @@ jobs:
         with:
           path: ~/go/pkg/mod
           key: go-${{ hashFiles('**/go.sum') }}
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
       - name: Build for local E2E
         env:
