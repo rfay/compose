@@ -36,9 +36,14 @@ func TestComposeRunDdev(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Running on Windows. Skipping...")
 	}
+	_ = os.Setenv("DDEV_DEBUG", "true")
+
 	c := NewParallelE2eCLI(t, binDir)
 	dir, err := os.MkdirTemp("", t.Name()+"-")
 	assert.NilError(t, err)
+
+	// ddev needs to be able to find mkcert to figure out where certs are.
+	_ = os.Setenv("PATH", fmt.Sprintf("%s:%s", os.Getenv("PATH"), dir))
 
 	siteName := filepath.Base(dir)
 
@@ -60,6 +65,10 @@ func TestComposeRunDdev(t *testing.T) {
 			compressedFilename))
 
 	c.RunCmdInDir(dir, "tar", "-xzf", compressedFilename)
+	c.RunCmdInDir(dir, "curl", "-L", "-o", "mkcert", "https://github.com/FiloSottile/mkcert/releases/download/v1.4.3/mkcert-v1.4.3-linux-amd64")
+	c.RunCmdInDir(dir, "chmod", "a+x", "mkcert")
+	c.RunCmdInDir(dir, "mkcert", "-install")
+
 	c.RunDockerCmd("pull", "drud/ddev-ssh-agent:v1.18.0")
 	c.RunDockerCmd("pull", "busybox:stable")
 	c.RunDockerCmd("pull", "phpmyadmin:5")
