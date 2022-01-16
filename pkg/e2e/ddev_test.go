@@ -77,6 +77,9 @@ func TestComposeRunDdev(t *testing.T) {
 	c.RunCmdInDir(dir, "./ddev", "poweroff")
 
 	startRes := c.RunCmdInDir(dir, "./ddev", "start", "-y")
+	c.RunCmdInDir(dir, "./ddev", "logs")
+
+	c.RunCmdInDir(dir, "docker", "logs", "ddev-router")
 	assert.Equal(c.test, startRes.ExitCode, 0, "Could not start project")
 
 	curlRes := c.RunCmdInDir(dir, "curl", "-sSL", fmt.Sprintf("http://%s.ddev.site", siteName))
