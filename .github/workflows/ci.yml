@@ -4,14 +4,13 @@ on:
   push:
     branches:
       - v2
-      - 20220116_ulysses-e2e-ddev_parallel
   pull_request:
   workflow_dispatch:
     inputs:
       debug_enabled:
-        description: 'Run the build with tmate set "debug_enabled"'
+        description: 'To run with tmate enter "debug_enabled"'
         required: false
-        default: false
+        default: "false"
 
 jobs:
   lint:

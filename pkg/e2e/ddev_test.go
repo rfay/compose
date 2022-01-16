@@ -85,8 +85,10 @@ func TestComposeRunDdev(t *testing.T) {
 
 	c.RunCmdInDir(dir, "./ddev", "poweroff")
 
-	startRes := c.RunCmdInDir(dir, "./ddev", "start", "-y")
-	assert.Equal(c.test, startRes.ExitCode, 0, "Could not start project")
+	c.RunCmdInDir(dir, "./ddev", "start", "-y")
+
+	// This assertion is irrelevant because c.RunCmdInDir() does its own assertion.
+	//assert.Equal(c.test, startRes.ExitCode, 0, "Could not start project")
 
 	curlRes := c.RunCmdInDir(dir, "curl", "-sSL", fmt.Sprintf("http://%s.ddev.site", siteName))
 	out := curlRes.Stdout()
