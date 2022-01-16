@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - v2
-      - 20220107-ulysses-e2e-ddev
+      - 20220116_ulysses-e2e-ddev_parallel
   pull_request:
   workflow_dispatch:
     inputs:
