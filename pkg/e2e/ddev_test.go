@@ -43,7 +43,7 @@ func TestComposeRunDdev(t *testing.T) {
 	assert.NilError(t, err)
 
 	// ddev needs to be able to find mkcert to figure out where certs are.
-	_ = os.Setenv("PATH", os.Getenv("PATH")+":./bin")
+	_ = os.Setenv("PATH", fmt.Sprintf("%s:%s", os.Getenv("PATH"), dir))
 
 	siteName := filepath.Base(dir)
 
