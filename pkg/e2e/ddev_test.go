@@ -36,6 +36,8 @@ func TestComposeRunDdev(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("Running on Windows. Skipping...")
 	}
+	_ = os.Setenv("DDEV_DEBUG", "true")
+	
 	c := NewParallelE2eCLI(t, binDir)
 	dir, err := os.MkdirTemp("", t.Name()+"-")
 	assert.NilError(t, err)
