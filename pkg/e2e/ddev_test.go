@@ -80,6 +80,10 @@ func TestComposeRunDdev(t *testing.T) {
 	// Create a simple index.php we can test against.
 	c.RunCmdInDir(dir, "sh", "-c", "echo '<?php\nprint \"ddev is working\";' >index.php")
 
+	vRes := c.RunCmdInDir(dir, "./ddev", "version")
+	out := vRes.Stdout()
+	fmt.Printf("ddev version: %s\n", out)
+
 	c.RunCmdInDir(dir, "./ddev", "config", "--auto")
 	c.RunCmdInDir(dir, "./ddev", "config", "global", "--use-docker-compose-from-path")
 
@@ -91,7 +95,7 @@ func TestComposeRunDdev(t *testing.T) {
 	//assert.Equal(c.test, startRes.ExitCode, 0, "Could not start project")
 
 	curlRes := c.RunCmdInDir(dir, "curl", "-sSL", fmt.Sprintf("http://%s.ddev.site", siteName))
-	out := curlRes.Stdout()
+	out = curlRes.Stdout()
 	fmt.Println(out)
 	assert.Assert(c.test, strings.Contains(out, "ddev is working"), "Could not start project")
 }
