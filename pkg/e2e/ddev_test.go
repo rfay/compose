@@ -80,12 +80,11 @@ func TestComposeRunDdev(t *testing.T) {
 	// Create a simple index.php we can test against.
 	c.RunCmdInDir(dir, "sh", "-c", "echo '<?php\nprint \"ddev is working\";' >index.php")
 
+	c.RunCmdInDir(dir, "./ddev", "config", "--auto")
+	c.RunCmdInDir(dir, "./ddev", "config", "global", "--use-docker-compose-from-path")
 	vRes := c.RunCmdInDir(dir, "./ddev", "version")
 	out := vRes.Stdout()
 	fmt.Printf("ddev version: %s\n", out)
-
-	c.RunCmdInDir(dir, "./ddev", "config", "--auto")
-	c.RunCmdInDir(dir, "./ddev", "config", "global", "--use-docker-compose-from-path")
 
 	c.RunCmdInDir(dir, "./ddev", "poweroff")
 
